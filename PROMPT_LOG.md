@@ -111,3 +111,54 @@ succeed.
 
 **What remains:** Phase 1 (live Supabase project + Google OAuth client — needs the human's accounts),
 then real end-to-end testing of both apps against that project, then deploy.
+
+---
+
+## Entry 4 — Live Supabase/Google OAuth setup and real end-to-end verification
+
+**Prompt:** User created the Supabase project and pasted the project URL, Google OAuth Client ID, and
+Client Secret directly into chat. Asked them for the missing anon/publishable key (Supabase's dashboard
+has been mid-migration off the old "anon key" naming to a `sb_publishable_...` key, which needed
+explaining), then wired both apps' env files — `apps/dispatcher-web/.env` and a new
+`apps/driver-mobile/env.json` (read via `--dart-define-from-file`, since Dart has no native `.env`
+support and adding a package for it wasn't worth it) — and tested for real.
+
+**What broke, and how it was diagnosed without touching app code first:**
+- Clicking "Sign in with Google" produced no visible error, just a stuck "Redirecting…" state. Rather
+  than guess, inspected the actual browser network log and found the real redirect URL Supabase had
+  constructed — the embedded Google Client ID was missing a leading digit (`63152555322...` vs. the
+  `663152555322...` the user had provided). This was a typo made while pasting into Supabase's
+  dashboard, not a bug in the app; told the user exactly what to fix and where.
+- After that fix, the user tested in their own real browser (since a real Google consent screen needs
+  an actual human — this agent's sandboxed preview browser can construct and hit the authorize URL, but
+  can't click "Allow" on Google's own page) and hit `Error 400: redirect_uri_mismatch` — a separate,
+  unrelated misconfiguration: the Supabase callback URL wasn't yet in the Google Cloud OAuth client's
+  "Authorized redirect URIs" allow-list. Pointed to the exact field to fix.
+- Once Google login worked, the user reported requests only appeared after a manual refresh — a
+  plausible realtime bug. Rather than guess, added a one-line console log on the channel's subscribe
+  callback and, once the Chrome extension connected, drove the actual authenticated app: created a
+  request, watched it land instantly with no reload (confirmed the dispatcher side's realtime already
+  worked — likely the user's first report was a one-time race between login-redirect and the channel
+  finishing its subscribe handshake). Then tested the driver app's booking flow the same way and found
+  a *real* bug: a booked gig stayed listed under "Available" until the tab was rebuilt. Traced it to
+  `supabase_flutter`'s `stream().eq()` not reliably re-applying its filter to rows changed by incoming
+  realtime events (it seems to filter the initial fetch correctly but not every subsequent emission).
+  Fixed by streaming the unfiltered table and filtering client-side in Dart on every emission instead —
+  simpler and more correct than digging further into the package's internals for a demo-scoped app.
+  Verified by rebooking a fresh gig and watching it disappear live with no navigation.
+- Also confirmed the booking race-condition guard added back in Entry 3 works as designed: attempting
+  to book an already-booked gig surfaced "This gig was just booked by someone else" instead of silently
+  succeeding.
+
+**Tooling note:** used the `claude-in-chrome` extension (with the user's explicit go-ahead) to drive
+both apps in a real, already-authenticated browser session — this was the only way to test a real
+Google OAuth consent flow and real Supabase realtime behavior, since the sandboxed preview browser
+can't complete third-party login. Flagged and asked before using it, since it's the user's real browser
+session with their real Google accounts visible in the account chooser.
+
+**Verify:** PR #4 (`fix/realtime-e2e-verification`), merged into `main`. Manually verified in a real
+browser: dispatcher create → live in driver "Available" → book → live removal from "Available" + live
+"Booked" status in dispatcher + live entry in "My Gigs", no refresh needed anywhere in the chain.
+
+**What remains:** Phase 5 — deploy both apps live (Vercel for dispatcher-web; static Flutter web build
+to Vercel/Netlify for driver-mobile) — then finalize docs.
