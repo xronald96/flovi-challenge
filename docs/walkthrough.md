@@ -1,8 +1,8 @@
 # 5-minute walkthrough
 
-_Status: skeleton — filled in during Phase 6 once both apps are deployed._
-
-A script for demoing both apps end to end, as if showing a real customer.
+A script for demoing both apps end to end, as if showing a real customer. Both apps and the flow
+below have been run for real against the live Supabase project — see `PROMPT_LOG.md` Entry 4 for
+the issues hit and fixed while verifying it (Google OAuth redirect config, a realtime UI bug).
 
 ## 1. Dispatcher web app (~2 min)
 
@@ -14,7 +14,7 @@ A script for demoing both apps end to end, as if showing a real customer.
 
 ## 2. Driver mobile app (~2 min)
 
-1. Open the live driver web URL (or run the APK per README), sign in with Google.
+1. Open the live driver web URL, sign in with Google.
 2. Show "Available gigs" — the request just created should be listed.
 3. Tap it, confirm the booking dialog, book it.
 4. Show it disappear from "Available gigs" and appear in "My gigs".
@@ -28,6 +28,6 @@ A script for demoing both apps end to end, as if showing a real customer.
 
 ## Links
 
-- Dispatcher web app: _TBD_
-- Driver mobile app: _TBD_
-- Repo: _TBD_
+- Dispatcher web app: https://dispatcher-web-ten.vercel.app
+- Driver mobile app: https://driver-mobile-delta.vercel.app
+- Repo: https://github.com/xronald96/flovi-challenge
