@@ -7,6 +7,19 @@
       "runtimeArgs": ["node_modules/vite/bin/vite.js", "--host"],
       "cwd": "apps/dispatcher-web",
       "port": 5173
+    },
+    {
+      "name": "driver-mobile",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": [
+        "run",
+        "-d", "web-server",
+        "--web-port", "8080",
+        "--web-hostname", "0.0.0.0",
+        "--dart-define-from-file=env.json"
+      ],
+      "cwd": "apps/driver-mobile",
+      "port": 8080
     }
   ]
 }

@@ -21,6 +21,7 @@ apps/driver-mobile/build/
 apps/driver-mobile/.pub-cache/
 apps/driver-mobile/.pub/
 apps/driver-mobile/*.iml
+apps/driver-mobile/env.json
 
 # Editors / OS
 .vscode/

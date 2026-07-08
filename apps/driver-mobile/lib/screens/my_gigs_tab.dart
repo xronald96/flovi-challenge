@@ -13,10 +13,10 @@ class MyGigsTab extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // See AvailableGigsTab for why this filters client-side rather than via .eq().
     final stream = supabase
         .from('relocation_requests')
         .stream(primaryKey: ['id'])
-        .eq('booked_by', userId)
         .order('scheduled_date');
 
     return StreamBuilder<List<Map<String, dynamic>>>(
@@ -34,7 +34,10 @@ class MyGigsTab extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final requests = snapshot.data!.map(RelocationRequest.fromJson).toList();
+        final requests = snapshot.data!
+            .map(RelocationRequest.fromJson)
+            .where((r) => r.bookedBy == userId)
+            .toList();
 
         if (requests.isEmpty) {
           return Center(
