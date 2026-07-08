@@ -82,7 +82,7 @@ Future<void> forceUpdateStatus(String id, {required String status, String? booke
     request.headers.set('apikey', _testSupabaseServiceRoleKey);
     request.headers.set('Authorization', 'Bearer $_testSupabaseServiceRoleKey');
     request.headers.set('Content-Type', 'application/json');
-    request.write(jsonEncode({'status': status, if (bookedBy != null) 'booked_by': bookedBy}));
+    request.write(jsonEncode({'status': status, 'booked_by': ?bookedBy}));
     final response = await request.close();
     await response.drain<void>();
   } finally {
