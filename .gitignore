@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Env
+.env
+.env.local
+.env.*.local
+!*.env.example
+
+# Vite / Vue build
+apps/dispatcher-web/dist/
+
+# Flutter / Dart
+apps/driver-mobile/.dart_tool/
+apps/driver-mobile/.flutter-plugins
+apps/driver-mobile/.flutter-plugins-dependencies
+apps/driver-mobile/.packages
+apps/driver-mobile/build/
+apps/driver-mobile/.pub-cache/
+apps/driver-mobile/.pub/
+apps/driver-mobile/*.iml
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Assignment source doc (not part of the public deliverable)
+Developer Case Assignment.pdf
