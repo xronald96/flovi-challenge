@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dispatcher-web",
+      "runtimeExecutable": "/Users/ronald/.nvm/versions/node/v22.19.0/bin/node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--host"],
+      "cwd": "apps/dispatcher-web",
+      "port": 5173
+    }
+  ]
+}
