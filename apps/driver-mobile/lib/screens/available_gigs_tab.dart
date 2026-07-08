@@ -9,10 +9,14 @@ class AvailableGigsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Filtered client-side rather than via a server-side .eq(): supabase_flutter's
+    // stream() re-applies query filters to the initial fetch but not reliably to
+    // rows updated by incoming realtime events, which left booked gigs stuck in
+    // this list until the tab was rebuilt. Streaming the whole table and filtering
+    // here keeps every emission correct.
     final stream = supabase
         .from('relocation_requests')
         .stream(primaryKey: ['id'])
-        .eq('status', 'pending')
         .order('scheduled_date');
 
     return StreamBuilder<List<Map<String, dynamic>>>(
@@ -30,7 +34,10 @@ class AvailableGigsTab extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final requests = snapshot.data!.map(RelocationRequest.fromJson).toList();
+        final requests = snapshot.data!
+            .map(RelocationRequest.fromJson)
+            .where((r) => r.status == RelocationStatus.pending)
+            .toList();
 
         if (requests.isEmpty) {
           return Center(

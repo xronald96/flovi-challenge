@@ -72,7 +72,9 @@ function subscribeRealtime() {
         }
       },
     )
-    .subscribe()
+    .subscribe((status, err) => {
+      console.log('[realtime] relocation_requests channel status:', status, err ?? '')
+    })
 }
 
 function unsubscribeRealtime() {
