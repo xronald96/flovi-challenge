@@ -1,7 +1,10 @@
 # Flovi Relocation Workflow — AI Build Challenge
 
+[![Tests](https://github.com/xronald96/flovi-challenge/actions/workflows/test.yml/badge.svg)](https://github.com/xronald96/flovi-challenge/actions/workflows/test.yml)
+
 Two connected apps simulating a relocation dispatch workflow, built end-to-end with AI-generated
-code in a 4-hour sprint:
+code in a 4-hour sprint, with a real test suite added as a deliberate follow-up phase (see
+[Testing](#testing) below):
 
 - **Dispatcher web app** (`apps/dispatcher-web`) — Vue 3 + Vite + Tailwind CSS. Dispatchers log in
   with Google, create relocation requests, and track/edit their status.
@@ -31,7 +34,9 @@ Cloud OAuth client can log in — ask for access if needed).
 ```
 apps/
   dispatcher-web/   Vue 3 + Vite + Tailwind
+    e2e/            Playwright e2e (real test Supabase project, no mocks)
   driver-mobile/    Flutter 3 (web build target)
+    integration_test/  Real integration tests (same test Supabase project)
 packages/
   shared/           Cross-app data model spec
 docs/
@@ -39,6 +44,8 @@ docs/
   reflection.md     What worked, what broke, where AI got in the way
 supabase/
   schema.sql        Full DB schema, RLS policies, realtime publication
+.github/workflows/
+  test.yml          CI: runs both apps' full test suites on every PR
 ```
 
 ## Tech stack & why
@@ -53,7 +60,7 @@ supabase/
 - **Vercel/Netlify** for static hosting of both apps.
 
 See [`docs/reflection.md`](docs/reflection.md) for the full list of intentional scope cuts (no
-role-based access control, no pagination, no native mobile build, no test suite).
+role-based access control, no pagination, no native mobile build).
 
 ## Setup
 
@@ -144,6 +151,28 @@ string-exact unless you use a glob pattern. Without this, Google login silently 
 whatever `Site URL` is configured (often `http://localhost:3000`) instead of erroring, which is a
 confusing failure mode to debug blind — check the browser's address bar after picking a Google
 account if login ever seems to "do nothing" after deploying to a new URL.
+
+## Testing
+
+Both apps have a real test suite, run on every PR by [`.github/workflows/test.yml`](.github/workflows/test.yml):
+
+| | Unit | e2e / integration |
+|---|---|---|
+| dispatcher-web | Vitest — pure logic only (form validation, status maps) | Playwright, against a **second, dedicated test Supabase project** — real auth (a real session minted via the service-role Admin API, since a human has to click through Google's own consent screen), real Postgres, real Realtime. No mocks. |
+| driver-mobile | `flutter_test` — pure logic only (model parsing, StatusBadge) | Flutter `integration_test`, same test project. Runs on a macOS desktop target rather than web/Chrome — see [`apps/driver-mobile/README.md`](apps/driver-mobile/README.md) for why. |
+
+Two of the e2e/integration regression tests exist specifically because they're what real manual
+testing caught during the build: booking a gig must remove it from "Available" live (the
+`stream().eq()` realtime bug from Phase 4), and a losing bid in a booking race must show a friendly
+message instead of silently succeeding (the concurrency bug from Phase 3).
+
+```bash
+# dispatcher-web
+cd apps/dispatcher-web && npm test && npm run test:e2e   # needs .env.test — see its README
+
+# driver-mobile
+cd apps/driver-mobile && flutter test test/ && ./scripts/run_integration_tests.sh  # needs test.env.json
+```
 
 ## Demo flow
 

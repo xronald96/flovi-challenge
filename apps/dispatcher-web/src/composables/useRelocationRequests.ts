@@ -73,7 +73,9 @@ function subscribeRealtime() {
       },
     )
     .subscribe((status, err) => {
-      console.log('[realtime] relocation_requests channel status:', status, err ?? '')
+      if (status !== 'SUBSCRIBED') {
+        console.error('[realtime] relocation_requests channel problem:', status, err ?? '')
+      }
     })
 }
 
