@@ -45,7 +45,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <form class="space-y-4" @submit.prevent="handleSubmit">
+  <form class="space-y-4" novalidate @submit.prevent="handleSubmit">
     <div>
       <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Origin</label>
       <input

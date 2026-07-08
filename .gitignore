@@ -7,10 +7,17 @@ node_modules/
 .env
 .env.local
 .env.*.local
+.env.test
 !*.env.example
 
 # Vite / Vue build
 apps/dispatcher-web/dist/
+
+# Playwright
+apps/dispatcher-web/e2e/.auth/
+apps/dispatcher-web/test-results/
+apps/dispatcher-web/playwright-report/
+apps/dispatcher-web/blob-report/
 
 # Flutter / Dart
 apps/driver-mobile/.dart_tool/
