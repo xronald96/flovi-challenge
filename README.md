@@ -12,16 +12,19 @@ Both apps share one Supabase project (Postgres + Auth + Realtime) and one data m
 [`supabase/schema.sql`](supabase/schema.sql) and documented in
 [`packages/shared/model.md`](packages/shared/model.md).
 
-> Status: 🚧 in progress — this README is updated at the end of each build phase. See
-> [`PROMPT_LOG.md`](PROMPT_LOG.md) for the build history and [`docs/`](docs/) for the walkthrough
-> and reflection.
+See [`PROMPT_LOG.md`](PROMPT_LOG.md) for the build history and [`docs/`](docs/) for the walkthrough
+and reflection.
 
 ## Live demo
 
 | App | URL |
 |-----|-----|
-| Dispatcher web | _TBD_ |
-| Driver mobile (web) | _TBD_ |
+| Dispatcher web | https://dispatcher-web-ten.vercel.app |
+| Driver mobile (web) | https://driver-mobile-delta.vercel.app |
+
+Both are backed by the same live Supabase project. Sign in with any Google account (the OAuth
+consent screen is currently in "Testing" mode, so only accounts added as test users in the Google
+Cloud OAuth client can log in — ask for access if needed).
 
 ## Repo structure
 
@@ -84,11 +87,14 @@ npm run dev
 
 ### 4. Driver mobile app
 
+Dart has no native `.env` support, so credentials are passed at build/run time via
+`--dart-define-from-file` instead of a `.env` file:
+
 ```bash
 cd apps/driver-mobile
-cp .env.example .env    # fill in SUPABASE_URL / SUPABASE_ANON_KEY (see env docs below)
+cp env.example.json env.json   # fill in SUPABASE_URL / SUPABASE_ANON_KEY
 flutter pub get
-flutter run -d chrome
+flutter run -d chrome --dart-define-from-file=env.json
 ```
 
 ## Environment variables
@@ -97,13 +103,47 @@ flutter run -d chrome
 |-----|----------|----------------------|
 | dispatcher-web | `VITE_SUPABASE_URL` | Supabase → Settings → API |
 | dispatcher-web | `VITE_SUPABASE_ANON_KEY` | Supabase → Settings → API |
-| driver-mobile | `SUPABASE_URL` | Supabase → Settings → API |
-| driver-mobile | `SUPABASE_ANON_KEY` | Supabase → Settings → API |
+| driver-mobile | `SUPABASE_URL` (in `env.json`) | Supabase → Settings → API |
+| driver-mobile | `SUPABASE_ANON_KEY` (in `env.json`) | Supabase → Settings → API |
 
 ## Deployment
 
-_Filled in during Phase 5 — will include exact Vercel/Netlify steps for both apps, including how the
-Flutter web build's static output is deployed since these hosts don't run `flutter build` natively._
+Both apps are static builds, deployed to Vercel as two separate projects under the same account.
+
+### Dispatcher web (Vercel)
+
+```bash
+cd apps/dispatcher-web
+vercel --prod   # first run links/creates the project; set env vars once via:
+vercel env add VITE_SUPABASE_URL production
+vercel env add VITE_SUPABASE_ANON_KEY production
+```
+
+Vercel auto-detects the Vite build (`npm run build` → `dist/`) — no extra config needed beyond the
+two env vars above (Settings → Environment Variables in the Vercel dashboard, or the CLI commands
+above).
+
+### Driver mobile (Vercel, static Flutter web build)
+
+Vercel/Netlify have no native Flutter buildpack, so the web build happens locally/in CI first, and
+only the compiled static output is deployed:
+
+```bash
+cd apps/driver-mobile
+flutter build web --dart-define-from-file=env.json
+cd build/web
+vercel --prod --name driver-mobile
+```
+
+### After deploying (both apps)
+
+Add the production URLs to Supabase → Authentication → URL Configuration → **Redirect URLs**. Use a
+wildcard (`https://your-app.vercel.app/*`) rather than an exact string — Flutter web's OAuth
+redirect includes a trailing slash while Vite's doesn't, and Supabase's redirect matching is
+string-exact unless you use a glob pattern. Without this, Google login silently falls back to
+whatever `Site URL` is configured (often `http://localhost:3000`) instead of erroring, which is a
+confusing failure mode to debug blind — check the browser's address bar after picking a Google
+account if login ever seems to "do nothing" after deploying to a new URL.
 
 ## Demo flow
 

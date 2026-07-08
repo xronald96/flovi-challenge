@@ -162,3 +162,45 @@ browser: dispatcher create → live in driver "Available" → book → live remo
 
 **What remains:** Phase 5 — deploy both apps live (Vercel for dispatcher-web; static Flutter web build
 to Vercel/Netlify for driver-mobile) — then finalize docs.
+
+---
+
+## Entry 5 — Deployment
+
+**Prompt:** User confirmed (via an explicit yes/no check, since this creates public infrastructure
+under their account) to deploy both apps to Vercel now.
+
+**What broke, and how it was diagnosed:**
+- The machine's globally-installed `vercel` CLI (v28) failed immediately on the first deploy attempt
+  with an opaque `Cannot read properties of undefined (reading 'includes')`. Rather than debug an old
+  CLI's internals, checked for a newer version via `npx vercel@latest` — confirmed a working, much
+  newer CLI (v54) was available without any system changes, and used that instead.
+- First non-interactive deploy failed with a clear, actionable error (`missing_scope` — needed
+  `--scope xronald96s-projects`), which the CLI itself suggested the fix for; not a real debugging
+  exercise, just following the tool's own next-step hint.
+- After deploying, Google login on the live dispatcher URL landed on `http://localhost:3000/#access_
+  token=...` instead of the production URL — diagnosed as Supabase's Redirect URLs allow-list not
+  actually containing the new production URL (or containing it in the wrong field), causing a silent
+  fallback to the default Site URL rather than an error. Asked the user to double check the exact
+  field and value rather than guessing further.
+- After that fix, the *driver* app's login redirect broke the same way, but for a different reason:
+  `Uri.base.toString()` in Flutter web produces a URL with a trailing slash
+  (`https://driver-mobile-delta.vercel.app/`), while Vite's `window.location.origin` never has one.
+  These are different strings for Supabase's exact-match redirect allow-list, so the dispatcher fix
+  didn't cover the driver app. Fixed by switching both entries to wildcard patterns
+  (`https://*.vercel.app/*`-style per-app) instead of exact strings.
+- Verified both live apps end-to-end with real Google logins via the Chrome extension: both display
+  the same live Supabase data seen in local testing, confirming the deployed builds are wired to the
+  same project correctly.
+
+**Why this belongs in the prompt log and not just the reflection:** every one of these four issues
+was diagnosed by looking at actual observed behavior (a CLI error message, a browser URL bar, a
+network request) rather than by re-reading or re-generating code — the code was correct throughout
+Phase 5; every bug here was configuration, tooling version, or third-party redirect-matching
+semantics.
+
+**Verify:** https://dispatcher-web-ten.vercel.app and https://driver-mobile-delta.vercel.app both
+load, both authenticate with Google, and both show the same live Supabase data.
+
+**What remains:** Phase 6 — finalize `README.md` (done alongside this entry), `docs/walkthrough.md`,
+and `docs/reflection.md` with real content now that the full build is verified end to end.
