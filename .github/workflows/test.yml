@@ -1,0 +1,91 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  dispatcher-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/dispatcher-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Write test env file
+        run: |
+          cat <<EOF > .env.test
+          TEST_SUPABASE_URL=${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_ANON_KEY=${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          TEST_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+          TEST_USER_EMAIL=${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD=${{ secrets.TEST_USER_PASSWORD }}
+          EOF
+
+      - name: E2E tests (against dedicated test Supabase project)
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/dispatcher-web/playwright-report/
+          retention-days: 7
+
+  driver-mobile:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/driver-mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Unit tests
+        run: flutter test test/
+
+      - name: Build web
+        run: flutter build web --dart-define=SUPABASE_URL=https://placeholder.supabase.co --dart-define=SUPABASE_ANON_KEY=placeholder
+
+      - name: Write test env file
+        run: |
+          cat <<EOF > test.env.json
+          {
+            "TEST_SUPABASE_URL": "${{ secrets.TEST_SUPABASE_URL }}",
+            "TEST_SUPABASE_ANON_KEY": "${{ secrets.TEST_SUPABASE_ANON_KEY }}",
+            "TEST_SUPABASE_SERVICE_ROLE_KEY": "${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}",
+            "TEST_USER_EMAIL": "${{ secrets.TEST_USER_EMAIL }}",
+            "TEST_USER_PASSWORD": "${{ secrets.TEST_USER_PASSWORD }}"
+          }
+          EOF
+
+      - name: Integration tests (against dedicated test Supabase project)
+        run: ./scripts/run_integration_tests.sh
